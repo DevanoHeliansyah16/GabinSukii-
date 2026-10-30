@@ -153,15 +153,6 @@
             <div id="product-list" class="grid grid-cols-1 gap-4">
                 <!-- Javascript will render products here -->
             </div>
-            
-            <!-- Admin WhatsApp Contact Notice at the bottom of menu selection -->
-            <div class="mt-4 bg-amber-50/90 border-3 border-gray-900 rounded-2xl p-4 shadow-[4px_4px_0px_#1F2937] text-center">
-                <p class="text-xs font-bold text-gray-800 mb-1">Butuh bantuan atau tanya-tanya seputar pesanan?</p>
-                <div class="inline-flex items-center gap-2 bg-emerald-600 text-white font-fredoka text-sm px-4 py-2 rounded-xl shadow-sm">
-                    <i class="fa-brands fa-whatsapp text-lg"></i>
-                    <span>Admin WA: 0857-2814-2390</span>
-                </div>
-            </div>
         </section>
 
         <!-- Customer Form Section -->
@@ -221,6 +212,15 @@
             </div>
         </section>
 
+        <!-- Admin WhatsApp Contact Notice (Hanya satu di bagian paling bawah setelah form) -->
+        <div class="mb-24 bg-amber-50/90 border-3 border-gray-900 rounded-2xl p-4 shadow-[4px_4px_0px_#1F2937] text-center">
+            <p class="text-xs font-bold text-gray-800 mb-1">Butuh bantuan atau tanya-tanya seputar pesanan?</p>
+            <div class="inline-flex items-center gap-2 bg-emerald-600 text-white font-fredoka text-sm px-4 py-2 rounded-xl shadow-sm">
+                <i class="fa-brands fa-whatsapp text-lg"></i>
+                <span>Admin WA: 0857-2814-2390</span>
+            </div>
+        </div>
+
     </main>
 
     <!-- Sticky Bottom Cart Summary Bar -->
@@ -233,10 +233,17 @@
                     <span id="total-items" class="text-xs font-bold bg-amber-100 border border-gray-900 px-2 py-0.5 rounded-md">0 pcs</span>
                 </div>
             </div>
-            <button onclick="openPaymentModal()" class="sukii-btn bg-amber-300 hover:bg-amber-400 text-gray-900 font-fredoka text-base px-6 py-3 rounded-2xl flex items-center gap-2 shadow-sm">
-                <span>Bayar QRIS & Pesan</span>
-                <i class="fa-solid fa-arrow-right text-sm"></i>
-            </button>
+            <div class="flex items-center gap-2">
+                <!-- Tombol Lanjutkan Pembayaran (Muncul jika sebelumnya ada sesi payment aktif) -->
+                <button id="resume-payment-btn" onclick="openPaymentModal()" class="hidden sukii-btn bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-fredoka text-xs sm:text-sm px-3 py-3 rounded-2xl flex items-center gap-1.5 shadow-sm animate-bounce">
+                    <i class="fa-solid fa-credit-card"></i>
+                    <span>Lanjutkan Pembayaran</span>
+                </button>
+                <button onclick="openPaymentModal()" class="sukii-btn bg-amber-300 hover:bg-amber-400 text-gray-900 font-fredoka text-base px-6 py-3 rounded-2xl flex items-center gap-2 shadow-sm">
+                    <span>Bayar QRIS & Pesan</span>
+                    <i class="fa-solid fa-arrow-right text-sm"></i>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -553,6 +560,10 @@
             const totalDisplay = document.getElementById('modal-total-display');
             if (totalDisplay) totalDisplay.innerText = formatRupiah(cachedTotalFinal);
 
+            // Simpan status bahwa user sedang dalam sesi pembayaran ke localStorage
+            localStorage.setItem('sukii_pending_payment', 'true');
+            localStorage.setItem('sukii_total_final', cachedTotalFinal);
+
             const modal = document.getElementById('payment-modal');
             const content = document.getElementById('payment-modal-content');
             if (modal && content) {
@@ -654,6 +665,12 @@
             const waUrl = `https://wa.me/${adminPhone}?text=${encodedMessage}`;
 
             closePaymentModal();
+            
+            // Hapus status pending payment karena sudah konfirmasi kirim WA
+            localStorage.removeItem('sukii_pending_payment');
+            const resumeBtn = document.getElementById('resume-payment-btn');
+            if (resumeBtn) resumeBtn.classList.add('hidden');
+
             window.open(waUrl, '_blank');
 
             // Tampilkan popup halaman baru "Terima Kasih"
@@ -779,6 +796,11 @@
                 }, 300);
             }
 
+            // Hapus session storage/local storage pending payment
+            localStorage.removeItem('sukii_pending_payment');
+            const resumeBtn = document.getElementById('resume-payment-btn');
+            if (resumeBtn) resumeBtn.classList.add('hidden');
+
             // Reset keranjang
             for (const id in cart) {
                 cart[id] = 0;
@@ -805,6 +827,20 @@
             renderProducts();
             updateCountdown();
             setInterval(updateCountdown, 1000); // Update hitung mundur setiap detik
+
+            // Cek apakah ada status pending payment sebelumnya (jika user mental balik ke web)
+            if (localStorage.getItem('sukii_pending_payment') === 'true') {
+                const savedTotal = localStorage.getItem('sukii_total_final');
+                if (savedTotal) {
+                    cachedTotalFinal = parseFloat(savedTotal);
+                    const totalDisplay = document.getElementById('modal-total-display');
+                    if (totalDisplay) totalDisplay.innerText = formatRupiah(cachedTotalFinal);
+                }
+                const resumeBtn = document.getElementById('resume-payment-btn');
+                if (resumeBtn) {
+                    resumeBtn.classList.remove('hidden');
+                }
+            }
         };
     </script>
 </body>
