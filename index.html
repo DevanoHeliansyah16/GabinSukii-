@@ -97,7 +97,14 @@
             <p class="font-montserrat font-extrabold text-rose-600 text-sm sm:text-base tracking-widest uppercase mt-1">
                 OPEN PRE-ORDER ES KRIM GABIN
             </p>
-            <div class="mt-4 inline-flex items-center justify-center bg-blue-600 border-2 border-dashed border-yellow-300 px-6 py-2 rounded-full shadow-sm">
+            
+            <!-- Countdown Timer Badge (FOMO Trigger) -->
+            <div id="countdown-badge" class="mt-3 bg-rose-50 border-2 border-dashed border-rose-400 rounded-xl px-3 py-1.5 text-xs font-bold text-rose-800 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-clock animate-pulse text-rose-600"></i>
+                <span id="countdown-text">Memuat waktu penutupan PO...</span>
+            </div>
+
+            <div class="mt-3 inline-flex items-center justify-center bg-blue-600 border-2 border-dashed border-yellow-300 px-6 py-2 rounded-full shadow-sm">
                 <span class="font-montserrat font-bold text-sm sm:text-base text-white tracking-wide">All Varian 10k!</span>
             </div>
         </div>
@@ -145,6 +152,15 @@
         <section class="mb-6">
             <div id="product-list" class="grid grid-cols-1 gap-4">
                 <!-- Javascript will render products here -->
+            </div>
+            
+            <!-- Admin WhatsApp Contact Notice at the bottom of menu selection -->
+            <div class="mt-4 bg-amber-50/90 border-3 border-gray-900 rounded-2xl p-4 shadow-[4px_4px_0px_#1F2937] text-center">
+                <p class="text-xs font-bold text-gray-800 mb-1">Butuh bantuan atau tanya-tanya seputar pesanan?</p>
+                <div class="inline-flex items-center gap-2 bg-emerald-600 text-white font-fredoka text-sm px-4 py-2 rounded-xl shadow-sm">
+                    <i class="fa-brands fa-whatsapp text-lg"></i>
+                    <span>Admin WA: 0857-2814-2390</span>
+                </div>
             </div>
         </section>
 
@@ -258,12 +274,15 @@
                 <p class="text-[10px] text-gray-500 mt-1 text-center italic">Catatan: Pastikan nominal transfer sesuai total di atas ya!</p>
             </div>
 
-            <!-- Kirim Bukti TF via WhatsApp Button -->
-            <div class="mb-5">
+            <!-- Kirim Bukti TF via WhatsApp Button & Copy Summary Backup Button -->
+            <div class="space-y-3 mb-5">
                 <button onclick="sendProofViaWhatsApp()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-fredoka text-base py-3 px-4 rounded-2xl flex items-center justify-center gap-2 shadow-md transition-all">
                     <i class="fa-brands fa-whatsapp text-xl"></i> Kirim Bukti TF ke Admin (WhatsApp)
                 </button>
-                <p class="text-[11px] text-gray-600 text-center mt-2 font-medium">✨ Klik tombol di atas setelah transfer untuk mengirim bukti & rincian pesanan langsung ke Admin.</p>
+                <button onclick="copyOrderSummary()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-fredoka text-sm py-2.5 px-4 rounded-2xl flex items-center justify-center gap-2 shadow-sm transition-all">
+                    <i class="fa-solid fa-copy"></i> Salin Format Pesanan (Cadangan)
+                </button>
+                <p class="text-[11px] text-gray-600 text-center font-medium">✨ Jika tombol WA bermasalah, salin format lalu kirim manual ke WA Admin: <span class="font-bold text-emerald-700">0857-2814-2390</span>.</p>
             </div>
 
             <div class="flex gap-3">
@@ -629,8 +648,7 @@
                 total: cachedTotalFinal
             });
 
-            const message = `Halo Admin Gabin Sukii! 👋\n\nIzin konfirmasi pesanan dan pembayaran QRIS Pre-Order:\n\n*Nama:* ${name}\n*No. WA:* ${wa}\n*Metode:* ${fulfillmentMethodStr}\n*Lokasi/Alamat:* ${locationDetailStr}\n\n*Pesanan:*\n${orderItemsList.join('\n')}\n*Total Pembayaran:* ${formatRupiah(cachedTotalFinal)}${totalQty >= 3 ? '\n(Bonus: Free Thermal Bag & Free Ongkir COD)' : ''}${notes ? `\n\n*Catatan:* ${notes}` : ''}\n\nBerikut saya lampirkan bukti transfer pembayarannya ya Kak. Mohon dicek, terima kasih! 🙏`;
-
+            const message = generateOrderMessage();
             const adminPhone = "6285728142390";
             const encodedMessage = encodeURIComponent(message);
             const waUrl = `https://wa.me/${adminPhone}?text=${encodedMessage}`;
@@ -647,6 +665,104 @@
                 void successModal.offsetWidth;
                 successModal.classList.remove('opacity-0');
                 successContent.classList.remove('scale-95');
+            }
+        }
+
+        function generateOrderMessage() {
+            const nameInput = document.getElementById('cust-name');
+            const waInput = document.getElementById('cust-wa');
+            const notesInput = document.getElementById('cust-notes');
+            const fulfillmentTypeEl = document.getElementById('cust-fulfillment-type');
+            const pickupEl = document.getElementById('cust-pickup');
+            const codAddressInput = document.getElementById('cust-cod-address');
+
+            const name = nameInput ? nameInput.value.trim() : '';
+            const wa = waInput ? waInput.value.trim() : '';
+            const notes = notesInput ? notesInput.value.trim() : '';
+            const fulfillmentType = fulfillmentTypeEl ? fulfillmentTypeEl.value : 'pickup';
+            const pickup = pickupEl ? pickupEl.value : '';
+
+            let totalQty = 0;
+            let orderItemsList = [];
+
+            products.forEach(product => {
+                const qty = cart[product.id];
+                if (qty > 0) {
+                    totalQty += qty;
+                    orderItemsList.push(`- ${product.name}: ${qty} pcs`);
+                }
+            });
+
+            let fulfillmentMethodStr = "";
+            let baseLocationStr = "";
+
+            if (totalQty >= 3 || fulfillmentType === 'cod') {
+                const codVal = codAddressInput ? codAddressInput.value.trim() : "";
+                const finalCod = codVal ? codVal : "Tembalang Area";
+                fulfillmentMethodStr = "COD Tembalang";
+                baseLocationStr = finalCod;
+            } else {
+                fulfillmentMethodStr = "Titik Jemput";
+                baseLocationStr = pickup;
+            }
+
+            let locationDetailStr = baseLocationStr;
+            if (notes) {
+                locationDetailStr = `${baseLocationStr} (Catatan: ${notes})`;
+            }
+
+            return `Halo Admin Gabin Sukii! 👋\n\nIzin konfirmasi pesanan dan pembayaran QRIS Pre-Order:\n\n*Nama:* ${name}\n*No. WA:* ${wa}\n*Metode:* ${fulfillmentMethodStr}\n*Lokasi/Alamat:* ${locationDetailStr}\n\n*Pesanan:*\n${orderItemsList.join('\n')}\n*Total Pembayaran:* ${formatRupiah(cachedTotalFinal)}${totalQty >= 3 ? '\n(Bonus: Free Thermal Bag & Free Ongkir COD)' : ''}${notes ? `\n\n*Catatan:* ${notes}` : ''}\n\nBerikut saya lampirkan bukti transfer pembayarannya ya Kak. Mohon dicek, terima kasih! 🙏`;
+        }
+
+        // Fitur Salin Format Pesanan (Copy Order Summary)
+        function copyOrderSummary() {
+            const message = generateOrderMessage();
+            
+            // Gunakan metode execCommand copy untuk kompatibilitas iframe/mobile yang aman
+            const textArea = document.createElement("textarea");
+            textArea.value = message;
+            textArea.style.position = "fixed";  // Hindari scroll ke bawah
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showModal('Berhasil Disalin! 📋', 'Format pesanan berhasil disalin ke clipboard! Silakan paste manual di chat WhatsApp Admin ya.', '✅');
+                } else {
+                    showModal('Gagal Menyalin', 'Silakan coba lagi atau salin manual.', '⚠️');
+                }
+            } catch (err) {
+                showModal('Gagal Menyalin', 'Perangkat tidak mendukung penyalinan otomatis.', '⚠️');
+            }
+
+            document.body.removeChild(textArea);
+        }
+
+        // Countdown Timer menuju 10 November 2026
+        function updateCountdown() {
+            const targetDate = new Date('November 10, 2026 23:59:59').getTime();
+            const now = new Date().getTime();
+            const distance = targetDate - now;
+
+            const countdownText = document.getElementById('countdown-text');
+            if (!countdownText) return;
+
+            if (distance < 0) {
+                countdownText.innerText = "⏳ Pre-Order Telah Ditutup!";
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            if (days > 0) {
+                countdownText.innerText = `🔥 PO ditutup dalam ${days} hari ${hours} jam lagi!`;
+            } else {
+                countdownText.innerText = `🔥 PO ditutup dalam ${hours}j ${minutes}m ${seconds}d lagi! (Segera Checkout!)`;
             }
         }
 
@@ -687,6 +803,8 @@
 
         window.onload = () => {
             renderProducts();
+            updateCountdown();
+            setInterval(updateCountdown, 1000); // Update hitung mundur setiap detik
         };
     </script>
 </body>
