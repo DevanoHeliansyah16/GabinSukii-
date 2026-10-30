@@ -149,7 +149,7 @@
         </section>
 
         <!-- Customer Form Section -->
-        <section class="bg-white border-4 border-gray-900 rounded-3xl p-5 shadow-[6px_6px_0px_#1F2937] mb-6">
+        <section id="customer-form-section" class="bg-white border-4 border-gray-900 rounded-3xl p-5 shadow-[6px_6px_0px_#1F2937] mb-6">
             <h2 class="font-fredoka text-xl text-gray-900 mb-4 flex items-center gap-2">
                 <span>📝</span> Data Pemesan & Pengiriman
             </h2>
@@ -271,6 +271,21 @@
                     Tutup
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Thank You Success Modal (Halaman Baru / Popup Tersendiri) -->
+    <div id="success-modal" class="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
+        <div id="success-modal-content" class="bg-white rounded-3xl max-w-sm w-full p-8 text-center border-4 border-gray-900 shadow-[10px_10px_0px_#1F2937] scale-95 transition-transform duration-300">
+            <div class="w-20 h-20 bg-amber-100 border-4 border-gray-900 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm text-4xl">
+                🎉
+            </div>
+            <h3 class="font-fredoka text-2xl text-gray-900 mb-2">Terima kasih sudah konfirmasi!</h3>
+            <p class="text-sm text-gray-600 mb-6 font-medium leading-relaxed">Pesanan kamu sudah kami terima dan sedang diproses oleh admin. Silakan tunggu balasan konfirmasi selanjutnya ya!</p>
+            <button onclick="resetOrder()" class="sukii-btn bg-amber-300 hover:bg-amber-400 text-gray-900 font-fredoka text-base px-6 py-3.5 rounded-2xl w-full flex items-center justify-center gap-2 shadow-sm">
+                <i class="fa-solid fa-rotate-right"></i>
+                <span>Beli Lagi / Pesan Baru</span>
+            </button>
         </div>
     </div>
 
@@ -601,7 +616,6 @@
                 baseLocationStr = pickup;
             }
 
-            // PERBAIKAN: Menggabungkan lokasi/alamat dengan catatan tambahan (jika diisi)
             let locationDetailStr = baseLocationStr;
             if (notes) {
                 locationDetailStr = `${baseLocationStr} (Catatan: ${notes})`;
@@ -615,22 +629,60 @@
                 total: cachedTotalFinal
             });
 
-            const message = `Halo Admin Gabin Sukii! 👋\n\nIzin konfirmasi pesanan dan pembayaran QRIS Pre-Order:\n\n*Nama:* ${name}\n*No. WA:* ${wa}\n*Metode:* ${fulfillmentMethodStr}\n*Lokasi/Alamat:* ${locationDetailStr}\n\n*Pesanan:*\n${orderItemsList.join('\n')}\n*Total Pembayaran:* ${formatRupiah(cachedTotalFinal)}${totalQty >= 3 ? '\n(Bonus: Free Thermal Bag & Free Ongkir COD)' : ''}\n\nBerikut saya lampirkan bukti transfer pembayarannya ya Kak. Mohon dicek, terima kasih! 🙏`;
+            const message = `Halo Admin Gabin Sukii! 👋\n\nIzin konfirmasi pesanan dan pembayaran QRIS Pre-Order:\n\n*Nama:* ${name}\n*No. WA:* ${wa}\n*Metode:* ${fulfillmentMethodStr}\n*Lokasi/Alamat:* ${locationDetailStr}\n\n*Pesanan:*\n${orderItemsList.join('\n')}\n*Total Pembayaran:* ${formatRupiah(cachedTotalFinal)}${totalQty >= 3 ? '\n(Bonus: Free Thermal Bag & Free Ongkir COD)' : ''}${notes ? `\n\n*Catatan:* ${notes}` : ''}\n\nBerikut saya lampirkan bukti transfer pembayarannya ya Kak. Mohon dicek, terima kasih! 🙏`;
 
             const adminPhone = "6285728142390";
-            
-            // EncodeURIComponent mencegah emoji berubah menjadi tanda tanya di WhatsApp
             const encodedMessage = encodeURIComponent(message);
             const waUrl = `https://wa.me/${adminPhone}?text=${encodedMessage}`;
 
             closePaymentModal();
             window.open(waUrl, '_blank');
 
-            showModal('Pesanan Berhasil Dicatat! 🎉', 'Terima kasih Kak! Data pesanan sudah terekam di sistem dan kamu diarahkan ke WhatsApp untuk mengirim bukti transfer.', '✅');
+            // Tampilkan popup halaman baru "Terima Kasih"
+            const successModal = document.getElementById('success-modal');
+            const successContent = document.getElementById('success-modal-content');
             
-            setTimeout(() => {
-                location.reload();
-            }, 3500);
+            if (successModal && successContent) {
+                successModal.classList.remove('hidden');
+                void successModal.offsetWidth;
+                successModal.classList.remove('opacity-0');
+                successContent.classList.remove('scale-95');
+            }
+        }
+
+        function resetOrder() {
+            // Sembunyikan popup sukses terlebih dahulu
+            const successModal = document.getElementById('success-modal');
+            const successContent = document.getElementById('success-modal-content');
+            
+            if (successModal && successContent) {
+                successModal.classList.add('opacity-0');
+                successContent.classList.add('scale-95');
+                setTimeout(() => {
+                    successModal.classList.add('hidden');
+                }, 300);
+            }
+
+            // Reset keranjang
+            for (const id in cart) {
+                cart[id] = 0;
+                const qtyEl = document.getElementById(`qty-${id}`);
+                if (qtyEl) qtyEl.innerText = '0';
+            }
+
+            // Kosongkan form input
+            const nameInput = document.getElementById('cust-name');
+            const waInput = document.getElementById('cust-wa');
+            const notesInput = document.getElementById('cust-notes');
+            const codAddressInput = document.getElementById('cust-cod-address');
+
+            if (nameInput) nameInput.value = '';
+            if (waInput) waInput.value = '';
+            if (notesInput) notesInput.value = '';
+            if (codAddressInput) codAddressInput.value = '';
+
+            updateSummary();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         window.onload = () => {
