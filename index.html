@@ -279,6 +279,15 @@
                 <img src="qris.jpeg" alt="QRIS Nazril Ghifari" class="w-64 h-auto rounded-xl border border-gray-300 shadow-sm object-contain" />
                 <p class="text-xs font-bold text-gray-800 mt-2 text-center">AN: NAZRIL GHIFARI (GABIN SUKII)</p>
                 <p class="text-[10px] text-gray-500 mt-1 text-center italic">Catatan: Pastikan nominal transfer sesuai total di atas ya!</p>
+                
+                <!-- Keterangan Tambahan Jika Mental / Kembali ke Web -->
+                <div class="mt-3 pt-3 border-t border-gray-300 w-full text-left text-[11px] text-gray-700 bg-amber-50/80 p-2.5 rounded-xl">
+                    <p class="font-bold text-gray-900 mb-1 flex items-center gap-1">
+                        <i class="fa-solid fa-circle-info text-rose-600"></i>
+                        <span>Jika halaman tertutup / mental ke menu awal:</span>
+                    </p>
+                    <p class="leading-relaxed font-medium">Tenang! Cukup klik tombol kuning <span class="font-bold text-amber-800">"Lanjutkan Pembayaran"</span> yang muncul di bawah layar untuk kembali membuka QRIS tanpa harus mengisi ulang pesanan.</p>
+                </div>
             </div>
 
             <!-- Kirim Bukti TF via WhatsApp Button & Copy Summary Backup Button -->
@@ -560,9 +569,12 @@
             const totalDisplay = document.getElementById('modal-total-display');
             if (totalDisplay) totalDisplay.innerText = formatRupiah(cachedTotalFinal);
 
-            // Simpan status bahwa user sedang dalam sesi pembayaran ke localStorage
+            // Simpan status bahwa user sedang dalam sesi pembayaran ke localStorage beserta data keranjang
             localStorage.setItem('sukii_pending_payment', 'true');
             localStorage.setItem('sukii_total_final', cachedTotalFinal);
+            localStorage.setItem('sukii_cart_data', JSON.stringify(cart));
+            localStorage.setItem('sukii_cust_name', name);
+            localStorage.setItem('sukii_cust_wa', wa);
 
             const modal = document.getElementById('payment-modal');
             const content = document.getElementById('payment-modal-content');
@@ -668,6 +680,8 @@
             
             // Hapus status pending payment karena sudah konfirmasi kirim WA
             localStorage.removeItem('sukii_pending_payment');
+            localStorage.removeItem('sukii_cart_data');
+            localStorage.removeItem('sukii_total_final');
             const resumeBtn = document.getElementById('resume-payment-btn');
             if (resumeBtn) resumeBtn.classList.add('hidden');
 
@@ -798,6 +812,10 @@
 
             // Hapus session storage/local storage pending payment
             localStorage.removeItem('sukii_pending_payment');
+            localStorage.removeItem('sukii_cart_data');
+            localStorage.removeItem('sukii_total_final');
+            localStorage.removeItem('sukii_cust_name');
+            localStorage.removeItem('sukii_cust_wa');
             const resumeBtn = document.getElementById('resume-payment-btn');
             if (resumeBtn) resumeBtn.classList.add('hidden');
 
@@ -830,6 +848,25 @@
 
             // Cek apakah ada status pending payment sebelumnya (jika user mental balik ke web)
             if (localStorage.getItem('sukii_pending_payment') === 'true') {
+                const savedCart = localStorage.getItem('sukii_cart_data');
+                if (savedCart) {
+                    try {
+                        const parsedCart = JSON.parse(savedCart);
+                        for (const id in parsedCart) {
+                            cart[id] = parsedCart[id];
+                            const qtyEl = document.getElementById(`qty-${id}`);
+                            if (qtyEl) qtyEl.innerText = cart[id];
+                        }
+                    } catch(e) {}
+                }
+
+                const savedName = localStorage.getItem('sukii_cust_name');
+                const savedWa = localStorage.getItem('sukii_cust_wa');
+                if (savedName) document.getElementById('cust-name').value = savedName;
+                if (savedWa) document.getElementById('cust-wa').value = savedWa;
+
+                updateSummary();
+
                 const savedTotal = localStorage.getItem('sukii_total_final');
                 if (savedTotal) {
                     cachedTotalFinal = parseFloat(savedTotal);
